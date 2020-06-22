@@ -1,0 +1,11 @@
+MQTT Server Creation:
+sudo apt-get install mosquitto
+
+Check Server Status:
+systemctl status mosquitto
+
+Stop Mosquitto server:
+sudo service mosquitto stop
+
+Start Mosquitto server:
+sudo service mosquitto start

@@ -1,0 +1,4 @@
+Running locally
+$ node-red
+
+Then the url of the editor will be displayed, http://127.0.0.1:1880 (example)
