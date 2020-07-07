@@ -83,10 +83,10 @@ def section_creation():
 
 
     #Boundary boxes for RTSP (low resolution)
-    zone_x_min_patient,zone_y_min_patient,zone_x_max_patient,zone_y_max_patient = 154,199,248,326
+    zone_x_min_patient,zone_y_min_patient,zone_x_max_patient,zone_y_max_patient = 186,222,327,353
     zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 490,147,627,338
-    zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 62,78,101,128
-    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 325,151,364,194
+    zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 70,27,171,196
+    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 231,153,259,194
 
     #Draw Paitent Zone
     color_patient = (255,102,255)
@@ -325,10 +325,10 @@ def reconstruction_2d(target_id,id_map):
     previous_x = 0
     previous_y = 0
     #If hand washing detected = 1, else = 0
-    hand_wash_flag = 0 
-    patient_threshold = 79
+    hand_wash_flag = 0
+    patient_threshold = 99
     distance_thres_clean = 120
-    distance_thres_alchol = 80
+    distance_thres_alchol = 60
     num_of_contact = 0
     valid_patient_counter,invalid_patient_counter = 0,0
     valid_exit_counter, invalid_exit_counter = 0,0 
@@ -395,9 +395,10 @@ def reconstruction_2d(target_id,id_map):
                         check_hand_record = False
                         print("Record-Check = False")
                     access_flag = False
-            if(distance_patient<=patient_threshold):
+            if(distance_patient<patient_threshold):
                 #If the staff touches the patient, display in White Color
                 #print("distance = ",distance_patient)
+                #print(access_paitient_achor)
                 cv2.arrowedLine(background,(previous_x,previous_y),(centroid_x,centroid_y),(255,255,255),1)
                 if(access_paitient_achor==False):
                     #store all handwashing record until access patient
@@ -411,6 +412,7 @@ def reconstruction_2d(target_id,id_map):
                         print("Valid Found+1!")
                     else:
                         invalid_patient_counter+=1
+                        print("Invalid Found+1!")
             else:
                 if(access_paitient_achor == True):
                     print("reset")
