@@ -86,7 +86,7 @@ def section_creation():
     zone_x_min_patient,zone_y_min_patient,zone_x_max_patient,zone_y_max_patient = 186,222,327,353
     zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 490,147,627,338
     zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 70,27,171,196
-    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 231,153,259,194
+    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 278,156,300,193
 
     #Draw Paitent Zone
     color_patient = (255,102,255)

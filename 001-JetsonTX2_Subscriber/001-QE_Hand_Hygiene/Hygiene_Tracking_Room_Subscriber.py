@@ -277,7 +277,7 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
     zone_x_min_bed,zone_y_min_bed,zone_x_max_bed,zone_y_max_bed = 186,222,327,353
     zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 490,147,627,338
     zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 70,27,171,196
-    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 231,153,259,194
+    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 278,156,300,193
 
     #Room_Hygiene_Demo_12_5fps.mp4
     #distance_thres_bed = 150
