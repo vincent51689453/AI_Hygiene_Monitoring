@@ -1,0 +1,12 @@
+Dataset: path_log_1.csv
+
+Output:
+patient: compilance = 1 incompilance = 1
+surrondings: compilance = 1 incompilance = 0
+
+Solution:
+patient: compilance = 1 incompilance = 0
+surrondings: compilance = 1 incompilance = 0
+
+Because one single patient distnace>threshold, it splits to two contacts
+-------------------------------------------------------------------------------------

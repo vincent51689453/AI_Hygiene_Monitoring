@@ -13,3 +13,7 @@ ID:0 Total Number of Contact:2 Valid: 1 Invalid:1
 ID:1 Total Number of Contact:2 Valid: 1 Invalid:1
 ID:2 Total Number of Contact:2 Valid: 1 Invalid:1
 SysTime->12:24:01 Total ID detected:3 Total Valid Contact: 3 Total Invalid Contact: 3
+ID:0 Total Number of Contact:0 Valid: 999 Invalid:999
+SysTime->19:46:14 Total ID detected:1 Total Valid Contact: 0 Total Invalid Contact: 0
+ID:0 Total Number of Contact:0 Valid: 999 Invalid:999
+SysTime->19:48:03 Total ID detected:1 Total Valid Contact: 0 Total Invalid Contact: 0

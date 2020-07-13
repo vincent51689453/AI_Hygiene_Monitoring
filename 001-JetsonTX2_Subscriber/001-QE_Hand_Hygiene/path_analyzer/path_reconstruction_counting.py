@@ -11,14 +11,8 @@ import timeit
 import time
 import paho.mqtt.client as mqtt
 
-
-"""
-Tunning Parameters
-1) patient_threshold = 150 => Distance to define contacting the person
-2) min_samples => Minimum consecutive samples of contact
-3) max_samples => Maxmimum consecutive samples of contact
-"""
-
+#Disable mqtt when testing
+enable_mqtt = False
 previous_personal_statement = 0
 previous_target_id = 0
 #Systm Life Counter
@@ -340,6 +334,8 @@ def reconstruction_2d(target_id,id_map):
     initial_lock = False
     personal_status = False
     counter = 0
+    leave_confirm = False
+    leave_confirm_counter = 0
     #Process all data of one single ID
     while(counter<len(Position_list)):
         currentPosition=Position_list[counter]
@@ -415,10 +411,20 @@ def reconstruction_2d(target_id,id_map):
                         print("Invalid Found+1!")
             else:
                 if(access_paitient_achor == True):
-                    print("reset")
-                    access_paitient_achor = False
-                    #Once contact patient, remove check hand record
-                    check_hand_record = False
+                    #Solve suddenly out-of-range threshold
+                    if(leave_confirm==False):
+                        leave_confirm = True
+                        leave_confirm_counter = counter
+                    #Solve suddenly out-of-range threshold
+                    if(counter>leave_confirm_counter)and(leave_confirm==True):
+                        print("reset")
+                        access_paitient_achor = False
+                        #Once finished contact patient, remove check hand record
+                        check_hand_record = False
+                        #Reset 
+                        leave_confirm = False
+                        leave_confirm_counter = 0
+
 
                 if((hand_wash_flag==0)and(distance_patient>patient_threshold)):
                     #Others
@@ -467,9 +473,10 @@ def main():
             #A list to store (x,y,distance_bed,distance_clean,hand_wash)
             Position_list=[]
             #MQTT Publisher for Dashboard
-            client = mqtt.Client()
-            client.connect("localhost",1883,60)
-            client.loop_start()
+            if(enable_mqtt==True):
+                client = mqtt.Client()
+                client.connect("localhost",1883,60)
+                client.loop_start()
             #Calculate Starting time of the alogrithm
             start_time = timeit.default_timer()
             global background,Monitor_Report,SQL_Database
@@ -552,9 +559,10 @@ def main():
 
 
             print("[INFO] MQTT Message:",mqtt_message)
-            client.publish("MDSSCC/AIHH/gui_dashboard", mqtt_message)
-            client.loop_stop()
-            client.disconnect()
+            if(enable_mqtt==True):
+                client.publish("MDSSCC/AIHH/gui_dashboard", mqtt_message)
+                client.loop_stop()
+                client.disconnect()
             #client.loop()
             #Insert Data to Database
             SQL_Cursor = SQL_Database.cursor()
