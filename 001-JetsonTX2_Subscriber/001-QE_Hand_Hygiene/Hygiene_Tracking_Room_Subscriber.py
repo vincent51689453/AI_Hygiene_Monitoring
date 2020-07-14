@@ -214,6 +214,10 @@ class BBoxVisualization():
                 print("X-min:%d Y-min:%d X-max:%d Y-max:%d"%(x_min,y_min,x_max,y_max))
                 print("Buffer:",temp)
                 print("Hand-Wash?",hand_wash_status)
+                id_x = int((x_min+x_max)/2) 
+                id_y = int((y_min+y_max)/2) +30
+                debug = "W="+str(hand_wash_status)
+                cv2.putText(img, debug ,(id_x, id_y), cv2.FONT_HERSHEY_PLAIN, 1, (255,0,0), 2, cv2.LINE_AA)
                 rects.append(temp)
                 temp=[]
                 cv2.rectangle(img, (x_min, y_min), (x_max, y_max), color, 2)
@@ -286,7 +290,7 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
     #RTSP_Room_View_Read.mp4
     distance_thres_bed = 99
     distance_thres_clean = 120
-    distance_thres_alchol = 60
+    distance_thres_alchol = 85
 
     counter_msg = 0
     fail_msg = 0
@@ -301,7 +305,9 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
     backup_label = None  #restart issue
     none_buff = 0 #restart issue
     previous_id = 999
-
+    personal_status = []
+    for i in range(0,1000):
+        personal_status.append(0)
     #CSV Log File
     with open('./path_analyzer/path_log.csv','w',newline='') as csv_log_file:
         log_writer=csv.writer(csv_log_file)
@@ -373,11 +379,11 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                     if(distance_clean_alchol <= distance_thres_alchol):
                         cv2.line(img,(centroid[0], centroid[1]),(zone_x_alchol,zone_y_alchol),(255,0,255),1)
                         if(hand_wash_status == 1):
-                            personal_status = 1
+                            personal_status[objectID] = 1
                         ct.update_wash(True,objectID) 
                  
                     if(distance_bed <= distance_thres_bed):
-                        personal_status = 0
+                        personal_status[objectID] = 0
                         hand_wash_status = 0
                         cv2.line(img,(centroid[0], centroid[1]),(zone_x_bed,zone_y_bed),(255,0,255),1)
                         #Update Hygiene Status as the staff is originally cleaned
@@ -432,7 +438,7 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                     if(distance_clean <= distance_thres_clean):
                         cv2.line(img,(centroid[0], centroid[1]),(zone_x_clean,zone_y_clean),(255,0,255),1)
                         if(hand_wash_status == 1):
-                            personal_status = 1
+                            personal_status[objectID] = 1
                         #hand_wash_status = 1
                         #Update Hygiene Status
                         ct.update_hygiene(True,objectID)
@@ -444,7 +450,7 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                     flag = ct.display_hygiene(objectID)
                     if(previous_id!=objectID):
                         hand_wash_status = 0
-                        personal_status = 0
+                        #personal_status = 0
                     previous_id = objectID 
 
                     #if(hand_wash_status == 1):
@@ -452,7 +458,7 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                     #else:
                     #    cv2.putText(img,"Uncleaned", (centroid[0]-10, centroid[1]-30),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
                     #CSV TABLE FORMAT: ID, X, Y, DISTANCE_BED, DISTANCE_CLEAN, Hand_wash_status
-                    log_writer.writerow([objectID,centroid[0],centroid[1],int(distance_bed),int(distance_clean),int(distance_clean_alchol),int(hand_wash_status),int(personal_status)])
+                    log_writer.writerow([objectID,centroid[0],centroid[1],int(distance_bed),int(distance_clean),int(distance_clean_alchol),int(hand_wash_status),int(personal_status[objectID])])
                 #cv2.putText(img, "Counter:", (1400, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
                 #cv2.putText(img, str(counter_msg), (1550, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
                 #cv2.putText(img, "Fail:", (1590, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)

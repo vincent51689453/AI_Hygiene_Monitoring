@@ -12,7 +12,7 @@ import time
 import paho.mqtt.client as mqtt
 
 #Disable mqtt when testing
-enable_mqtt = False
+enable_mqtt = True
 previous_personal_statement = 0
 previous_target_id = 0
 #Systm Life Counter
@@ -115,14 +115,14 @@ def section_creation():
     #zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 600,140,1180,420
 
     #Incoming Detection (RTSP_Room_View_Ready.mp4)
-    zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 30,65,140,300
+    zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 30,65,140,200
     color_in = (192,192,192)
     cv2.rectangle(background,(zone_x_min_in,zone_y_min_in),(zone_x_max_in,zone_y_max_in),color_in,2) 
     #Outcoming Detection (for Room_Hygiene_Demo_12_5fps.mp4)
     #zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 900,160,580,600
 
     #Outcoming Detection (RTSP_Room_View_Ready.mp4)
-    zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 88,65,412,265
+    zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 88,65,412,180
     color_out = (102,178,255)
     cv2.rectangle(background,(zone_x_min_out,zone_y_min_out),(zone_x_max_out,zone_y_max_out),color_out,2)
 
@@ -185,7 +185,7 @@ def id_filtering(id_list,threshold,advanced_filter,filter_type):
                 #print("[INFO] Advanced filter Activated  --> ID =",i)
                 global background
                 #Incoming Detection
-                zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 30,65,140,300
+                zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 30,65,140,250
                 #Outcoming Detection
                 zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 88,65,412,265
                 with open('./path_log.csv') as filter_x:
@@ -235,8 +235,8 @@ def id_filtering(id_list,threshold,advanced_filter,filter_type):
                 #print("[INFO] In Out Filter Advanced Activated  --> ID =",i)
 
                 #Detection zone for rtsp (low resolution)
-                zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 30,65,140,300
-                zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 88,65,412,265
+                zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 30,65,140,200
+                zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 88,65,412,180
                 with open('./path_log.csv') as filter_x_adv:
                     log_filter_x_adv = csv.reader(filter_x_adv)
                     for row_x1_adv in log_filter_x_adv:
@@ -322,7 +322,7 @@ def reconstruction_2d(target_id,id_map):
     hand_wash_flag = 0
     patient_threshold = 99
     distance_thres_clean = 120
-    distance_thres_alchol = 60
+    distance_thres_alchol = 85
     num_of_contact = 0
     valid_patient_counter,invalid_patient_counter = 0,0
     valid_exit_counter, invalid_exit_counter = 0,0 

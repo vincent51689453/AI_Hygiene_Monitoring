@@ -1,0 +1,37 @@
+path_log_1.csv
+
+Output
+patient: compilance = 1 incompilance = 1
+surrondings: compilance = 1 incompilance = 0
+
+
+
+Should be
+patient: compilance = 1 incompilance = 0
+surrondings: compilance = 1 incompilance = 0
+
+Because one single patient distnace>threshold, it split to two contacts
+
+
+
+path_log_2.csv
+
+Output
+patient: compilance = 2 incompilance = 1
+surroundings: compilance = 0 incompilance = 1
+
+
+Should be
+patient: compilance = 2 incompilance = 1
+surroundings: compilance = 0 incompilance = 1
+
+Because when there are more than a id at the sametime, AI detector about personal status is interruped
+
+
+path_log_3.csv
+
+Output
+patient: compilance = 1 incompilance = 0
+surroundings: compilance = 1 incompilance = 1=0
+
+CORRECT
