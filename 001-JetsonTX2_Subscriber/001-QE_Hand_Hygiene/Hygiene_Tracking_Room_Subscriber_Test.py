@@ -1,3 +1,16 @@
+"""camera_tf_trt.py
+
+This is a Camera TensorFlow/TensorRT Object Detection sample code for
+Jetson TX2 or TX1.  This script captures and displays video from either
+a video file, an image file, an IP CAM, a USB webcam, or the Tegra
+onboard camera, and do real-time object detection with example TensorRT
+optimized SSD models in NVIDIA's 'tf_trt_models' repository.  Refer to
+README.md inside this repository for more information.
+
+This code is written and maintained by JK Jung <jkjung13@gmail.com>.
+"""
+
+
 import sys
 import time
 import logging
@@ -65,7 +78,6 @@ def on_message(client, userdata, msg):
 #Not using loop_forever since it is using the current thread
 client.loop_start()
 client.on_connect = on_connect
-client.on_message = on_message
 
 def parse_args():
     """Parse input arguments."""
@@ -203,7 +215,7 @@ class BBoxVisualization():
         for bb, cf, cl in zip(box, conf, cls):
             cl = int(cl)
             print("Confidence=",cf)
-            if((cl == 1)and(cf>=0.6)): #Vincent:Only process "person" (label id of persion = 1) + confidence control
+            if((cl == 1)and(cf>=0.69)): #Vincent:Only process "person" (label id of persion = 1) + confidence control
                 y_min, x_min, y_max, x_max = bb[0], bb[1], bb[2], bb[3]
                 color = self.colors[cl]
                 temp.append(x_min)
@@ -223,19 +235,13 @@ class BBoxVisualization():
                 img = draw_boxed_text(img, txt, txt_loc, color)
                 person_detection = True
         print("Trackers=",rects)
-        #if(person_detection == True):  #Vincent: Detection status display
-            #cv2.putText(img, "Status:Person IN ROOM", (10, 90), cv2.FONT_HERSHEY_PLAIN, 1.5, (0,255,0), 2, cv2.LINE_AA)
-        #else:
-        #    cv2.putText(img, "Status:EMPTY", (10, 90), cv2.FONT_HERSHEY_PLAIN, 1.5, (0,0,255), 2, cv2.LINE_AA)
+        if(person_detection == True):  #Vincent: Detection status display
+            cv2.putText(img, "Status:Person IN ROOM", (10, 90), cv2.FONT_HERSHEY_PLAIN, 1.5, (0,255,0), 2, cv2.LINE_AA)
+        else:
+            cv2.putText(img, "Status:EMPTY", (10, 90), cv2.FONT_HERSHEY_PLAIN, 1.5, (0,0,255), 2, cv2.LINE_AA)
         person_detection = False          
         return img,hand_wash_status
 #<<-----------------------------------------------------Vincent---------------------------------->>#
-def pixel_info(event,x,y,flag,param):
-    if event == cv2.EVENT_LBUTTONDOWN:  #When Left is clicked in the mouse
-        print("X:{} Y:{}".format(x,y))
-
-
-
 
 def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
     """Loop, grab images from camera, and do object detection.
@@ -262,22 +268,15 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
     #Boundary boxes for Room_Hygiene_Demo_12_5fps.mp4
     #zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 1200,140,1300,380
 
-    #Bondary boxes for video demo
-    #Boundary boxes for RTSP_Room_View_Ready.mp4
-    #zone_x_min_bed,zone_y_min_bed,zone_x_max_bed,zone_y_max_bed = 600,500,1000,1000
-    #Boundary boxes for RTSP_Room_View_Ready.mp4
-    #zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 1600,500,1900,820
-    #Boundary boxes for RTSP_Room_View_Ready.mp4
-    #zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 450,140,730,480
-    #Boundary boxes for RTSP_Room_View_Ready.mp4
-    #zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 300+800,200+300,350+800,270+300
 
-
-    #Boundary boxes for RTSP (low resolution)
-    zone_x_min_bed,zone_y_min_bed,zone_x_max_bed,zone_y_max_bed = 154,199,248,326
-    zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 490,147,627,338
-    zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 62,78,101,128
-    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 325,151,364,194
+    #Boundary boxes for RTSP_Room_View_Ready.mp4
+    zone_x_min_bed,zone_y_min_bed,zone_x_max_bed,zone_y_max_bed = 600,500,1000,1000
+    #Boundary boxes for RTSP_Room_View_Ready.mp4
+    zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 1600,500,1900,820
+    #Boundary boxes for RTSP_Room_View_Ready.mp4
+    zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 450,140,730,480
+    #Boundary boxes for RTSP_Room_View_Ready.mp4
+    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 300+800,200+300,350+800,270+300
 
 
     #Room_Hygiene_Demo_12_5fps.mp4
@@ -285,9 +284,11 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
     #distance_thres_clean = 80
 
     #RTSP_Room_View_Read.mp4
-    distance_thres_bed = 79
-    distance_thres_clean = 120
-    distance_thres_alchol = 40
+    distance_thres_bed = 240
+    distance_thres_clean = 160
+    #Will not consider alchol_distance
+    #Direct log to csv as detected, fixed distance = 20
+    distance_thres_alchol = 100
 
     counter_msg = 0
     fail_msg = 0
@@ -302,9 +303,6 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
     backup_label = None  #restart issue
     none_buff = 0 #restart issue
     previous_id = 999
-    frame_buffer = 0
-    frame_reset_thres=27000
-    # 15fps  -> 27000 -> reset every 30 minutes
     #CSV Log File
     with open('./path_analyzer/path_log.csv','w',newline='') as csv_log_file:
         log_writer=csv.writer(csv_log_file)
@@ -328,7 +326,7 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
             img = cam.read()
             if img is not None:
                 #check mqtt status
-                #client.on_message = on_message
+                client.on_message = on_message
                 #client.loop_forever()
                 box, conf, cls = detect(img, tf_sess, conf_th, od_type=od_type)    
                 img,hd = vis.draw_bboxes(img, box, conf, cls)
@@ -337,22 +335,22 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                 zone_x_bed = int((zone_x_min_bed+zone_x_max_bed)/2.0)
                 zone_y_bed = int((zone_y_min_bed+zone_y_max_bed)/2.0)
                 cv2.circle(img, (zone_x_bed, zone_y_bed), 4, (255,102,255), -1)
-                cv2.putText(img, "Patient", (zone_x_bed-40, zone_y_bed-20),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,102,255), 1)
+                cv2.putText(img, "Patient", (zone_x_bed-40, zone_y_bed-20),cv2.FONT_HERSHEY_SIMPLEX, 1,(255,102,255), 2)
                 cv2.rectangle(img, (zone_x_min_clean,zone_y_min_clean),(zone_x_max_clean,zone_y_max_clean),(255,255,51),2)            
                 zone_x_clean = int((zone_x_min_clean+zone_x_max_clean)/2.0)
                 zone_y_clean = int((zone_y_min_clean+zone_y_max_clean)/2.0)
                 cv2.circle(img, (zone_x_clean, zone_y_clean), 4, (255,255,51), -1)
-                cv2.putText(img, "CLEANING ZONE", (zone_x_clean-110, zone_y_clean-20),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,51), 1)
+                cv2.putText(img, "CLEANING ZONE", (zone_x_clean-120, zone_y_clean-20),cv2.FONT_HERSHEY_SIMPLEX, 1,(255,255,51), 2)
                 cv2.rectangle(img, (zone_x_min_door,zone_y_min_door),(zone_x_max_door,zone_y_max_door),(127,0,255),2)            
                 zone_x_door = int((zone_x_min_door+zone_x_max_door)/2.0)
                 zone_y_door = int((zone_y_min_door+zone_y_max_door)/2.0)
                 cv2.circle(img, (zone_x_door, zone_y_door), 4, (127,0,255), -1)
-                cv2.putText(img, "ENTRANCE", (zone_x_door-40, zone_y_door-20),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(127,0,255), 1)
+                cv2.putText(img, "ENTRANCE", (zone_x_door-30, zone_y_door-20),cv2.FONT_HERSHEY_SIMPLEX, 1,(127,0,255), 2)
                 cv2.rectangle(img, (zone_x_min_alchol,zone_y_min_alchol),(zone_x_max_alchol,zone_y_max_alchol),(255,255,51),2)            
                 zone_x_alchol = int((zone_x_min_alchol+zone_x_max_alchol)/2.0)
                 zone_y_alchol = int((zone_y_min_alchol+zone_y_max_alchol)/2.0)
                 cv2.circle(img, (zone_x_alchol, zone_y_alchol), 4, (255,255,51), -1)
-                cv2.putText(img, "CLEANING ZONE", (zone_x_alchol-35, zone_y_alchol-20),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,51), 1)
+                cv2.putText(img, "CLEANING ZONE", (zone_x_alchol-30, zone_y_alchol-20),cv2.FONT_HERSHEY_SIMPLEX, 1,(255,255,51), 1)
                 distance_bed = 0
                 distance_clean = 0
                 #Detection Zone
@@ -373,11 +371,20 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                     enter = ct.display_enter_status(objectID)
                     leave = ct.display_leave_status(objectID)
                     flag = ct.display_hygiene(objectID)
+                    #Only for drawing
+                    distance_thres_alchol = 100
                     if(distance_clean_alchol <= distance_thres_alchol):
                         cv2.line(img,(centroid[0], centroid[1]),(zone_x_alchol,zone_y_alchol),(255,0,255),1)
-                        if(hand_wash_status == 1):
-                            personal_status = 1
-                        ct.update_wash(True,objectID) 
+                    #Give up distance, log whenever it detected
+                    distance_thres_alchol = 1000
+                    if(distance_clean_alchol <= distance_thres_alchol):
+                        #Consider all places except cleaning zone
+                        if(distance_clean > distance_thres_clean):
+                            if(hand_wash_status == 1):
+                                personal_status = 1
+                                #fixed alchol distance to be 20
+                                distance_clean_alchol = 20
+                            ct.update_wash(True,objectID) 
                  
                     if(distance_bed <= distance_thres_bed):
                         personal_status = 0
@@ -466,17 +473,11 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                     if show_fps:
                         img = draw_help_and_fps(img, fps)
                     cv2.imshow(WINDOW_NAME, img)
-                    frame_buffer += 1
-                    cv2.setMouseCallback(WINDOW_NAME,pixel_info)  #Receive mouse click on HSV_Picker
                     toc = time.time()
                     curr_fps = 1.0 / (toc - tic)
                     # calculate an exponentially decaying average of fps number
                     fps = curr_fps if fps == 0.0 else (fps*0.9 + curr_fps*0.1)
                     tic = toc
-                    if(frame_buffer == frame_reset_thres):
-                        #Resolving camera slowwing down issue, force reset after thres frame
-                        restart_flag = True
-                        frame_buffer = 0
 
             else:
                 print("None Image  --> None Buff = {}".format(none_buff))
@@ -505,8 +506,7 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
 
                 
 
-        #client.loop_start()
-        #client.loop_forever()
+        client.loop_start()
     
 
 def main():
@@ -561,7 +561,6 @@ def main():
     #<<----------------------------------Vincent---------------------------------->>#  
     print("[INFO] Version: HT-002")                        #Vincent 
     print("[INFO]Screen Dimensions (H,W) =",cam.img_height,"x",cam.img_width)
-    #Low resolution RTSP: 360 x 640
     #<<----------------------------------Vincent---------------------------------->>#
     result=loop_and_detect(cam, tf_sess, args.conf_th, vis, od_type=od_type)
     logger.info('cleaning up')
