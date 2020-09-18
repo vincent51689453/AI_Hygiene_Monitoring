@@ -23,7 +23,7 @@ import tensorflow.contrib.tensorrt as trt
 import centroidtracker as ot
 import imutils
 import csv
-
+import paho.mqtt.client as mqtt
 from utils.camera import add_camera_args, Camera
 from utils.od_utils import read_label_map, build_trt_pb, load_trt_pb, \
                            write_graph_tensorboard, detect
@@ -38,10 +38,16 @@ TEXT_THICKNESS = 1
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 person_detection = False #Control Display status
-
+hand_wash_status=0
 ct = ot.CentroidTracker()
 temp=[]
+client = mqtt.Client()
 
+#It should connect to MQTT server
+#Jetson TX2(vincent) has been set as a MQTT server
+#If publisher/subscriber on JetsonTX2(vincet) please connect to localhost
+#Else please connect to  192.168.0.101 in the LAN
+client.connect("localhost",1883,60)
 #Global Parameters -- Vincent
 
 # Constants
@@ -51,6 +57,27 @@ DEFAULT_LABELMAP = 'third_party/models/research/object_detection/' \
 WINDOW_NAME = 'AI-Hygiene-Tracking[Room]'
 BBOX_COLOR = (0, 255, 0)  # green
 
+
+def on_connect(client, userdata, flags, rc):
+    print("Connected with result code "+str(rc))
+    client.subscribe("MDSSCC/AIHH/SENSOR")
+
+def on_message(client, userdata, msg):
+    global hand_wash_status
+    if(msg.payload.decode() == "WASHED"):
+        print("<<WASHED>> received")
+        hand_wash_status=1 
+    if (msg.payload.decode() == "DIRTY"):
+        print("<<DIRTY>> received")
+        hand_wash_status=0
+    if(msg.payload.decode() == "PRESS"):
+        print("alchol")
+        hand_wash_status=1
+    if(msg.payload.decode() == "RELEASE"):
+        hand_wash_status=0
+#Not using loop_forever since it is using the current thread
+client.loop_start()
+client.on_connect = on_connect
 
 def parse_args():
     """Parse input arguments."""
@@ -183,12 +210,12 @@ class BBoxVisualization():
 
     def draw_bboxes(self, img, box, conf, cls):
         """Draw detected bounding boxes on the original image.""" 
-        global person_detection,rects,ct,temp
+        global person_detection,rects,ct,temp,hand_wash_status
         print("================================================================================")
         for bb, cf, cl in zip(box, conf, cls):
             cl = int(cl)
             print("Confidence=",cf)
-            if((cl == 1)and(cf>=0.7)): #Vincent:Only process "person" (label id of persion = 1) + confidence control
+            if((cl == 1)and(cf>=0.69)): #Vincent:Only process "person" (label id of persion = 1) + confidence control
                 y_min, x_min, y_max, x_max = bb[0], bb[1], bb[2], bb[3]
                 color = self.colors[cl]
                 temp.append(x_min)
@@ -198,6 +225,7 @@ class BBoxVisualization():
                 print("Boundary Box Coordinates:")
                 print("X-min:%d Y-min:%d X-max:%d Y-max:%d"%(x_min,y_min,x_max,y_max))
                 print("Buffer:",temp)
+                print("Hand-Wash?",hand_wash_status)
                 rects.append(temp)
                 temp=[]
                 cv2.rectangle(img, (x_min, y_min), (x_max, y_max), color, 2)
@@ -212,7 +240,7 @@ class BBoxVisualization():
         else:
             cv2.putText(img, "Status:EMPTY", (10, 90), cv2.FONT_HERSHEY_PLAIN, 1.5, (0,0,255), 2, cv2.LINE_AA)
         person_detection = False          
-        return img
+        return img,hand_wash_status
 #<<-----------------------------------------------------Vincent---------------------------------->>#
 
 def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
@@ -231,45 +259,75 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
     global rects,ct,temp
     zone_x_bed = 0
     zone_y_bed = 0
-
     #Boundary boxes for Room_Hygiene_Demo_12_5fps.mp4
-    zone_x_min_bed,zone_y_min_bed,zone_x_max_bed,zone_y_max_bed = 840,500,1300,1000
-
-
+    #zone_x_min_bed,zone_y_min_bed,zone_x_max_bed,zone_y_max_bed = 840,500,1300,1000
     zone_x_clean = 0
     zone_y_clean = 0
-
     #Boundary boxes for Room_Hygiene_Demo_12_5fps.mp4
-    zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 300,416,580,680
+    #zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 300,416,580,680
+    #Boundary boxes for Room_Hygiene_Demo_12_5fps.mp4
+    #zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 1200,140,1300,380
 
 
     #Boundary boxes for RTSP_Room_View_Ready.mp4
-    zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 1200,140,1300,380
+    zone_x_min_bed,zone_y_min_bed,zone_x_max_bed,zone_y_max_bed = 600,500,1000,1000
+    #Boundary boxes for RTSP_Room_View_Ready.mp4
+    zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 1600,500,1900,820
+    #Boundary boxes for RTSP_Room_View_Ready.mp4
+    zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 450,140,730,480
+    #Boundary boxes for RTSP_Room_View_Ready.mp4
+    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 300+800,200+300,350+800,270+300
 
 
-    distance_thres_bed = 150
-    distance_thres_clean = 80
+    #Room_Hygiene_Demo_12_5fps.mp4
+    #distance_thres_bed = 150
+    #distance_thres_clean = 80
+
+    #RTSP_Room_View_Read.mp4
+    distance_thres_bed = 240
+    distance_thres_clean = 160
+    distance_thres_alchol = 100 #100
+
     counter_msg = 0
     fail_msg = 0
     pass_msg = 0
-    hand_wash_status=0
+    global hand_wash_status,args
+    hd = 0
     wash_delay = 0
     invalid_id = []
     invalid_id.append(999)
     enter,leave = False,False
+    restart_flag = False #restart issue
+    backup_label = None  #restart issue
+    none_buff = 0 #restart issue
+    previous_id = 999
     #CSV Log File
     with open('./path_analyzer/path_log.csv','w',newline='') as csv_log_file:
         log_writer=csv.writer(csv_log_file)
         while True:
-            if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
+            #if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
                 # Check to see if the user has closed the display window.
                 # If yes, terminate the while loop.
-                break
+            #    break
+            if(restart_flag == True):
+                cam = Camera(args)
+                cam.open()
+                cam.start()
+                print("Camera is opened!")
+                dummy_img = np.zeros((720, 1280, 3), dtype=np.uint8)
+                _, _, _ = detect(dummy_img, tf_sess, conf_th=.3, od_type=od_type)
+                print("Loading dummy image!")
+                restart_flag = False
+
+
             rects = []
             img = cam.read()
             if img is not None:
+                #check mqtt status
+                client.on_message = on_message
+                #client.loop_forever()
                 box, conf, cls = detect(img, tf_sess, conf_th, od_type=od_type)    
-                img = vis.draw_bboxes(img, box, conf, cls)
+                img,hd = vis.draw_bboxes(img, box, conf, cls)
                 #Detection Zone
                 cv2.rectangle(img, (zone_x_min_bed,zone_y_min_bed),(zone_x_max_bed,zone_y_max_bed),(255,102,255),2)
                 zone_x_bed = int((zone_x_min_bed+zone_x_max_bed)/2.0)
@@ -285,7 +343,12 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                 zone_x_door = int((zone_x_min_door+zone_x_max_door)/2.0)
                 zone_y_door = int((zone_y_min_door+zone_y_max_door)/2.0)
                 cv2.circle(img, (zone_x_door, zone_y_door), 4, (127,0,255), -1)
-                cv2.putText(img, "ENTRENCE", (zone_x_door-30, zone_y_door-20),cv2.FONT_HERSHEY_SIMPLEX, 1,(127,0,255), 2)
+                cv2.putText(img, "ENTRANCE", (zone_x_door-30, zone_y_door-20),cv2.FONT_HERSHEY_SIMPLEX, 1,(127,0,255), 2)
+                cv2.rectangle(img, (zone_x_min_alchol,zone_y_min_alchol),(zone_x_max_alchol,zone_y_max_alchol),(255,255,51),2)            
+                zone_x_alchol = int((zone_x_min_alchol+zone_x_max_alchol)/2.0)
+                zone_y_alchol = int((zone_y_min_alchol+zone_y_max_alchol)/2.0)
+                cv2.circle(img, (zone_x_alchol, zone_y_alchol), 4, (255,255,51), -1)
+                cv2.putText(img, "CLEANING ZONE", (zone_x_alchol-30, zone_y_alchol-20),cv2.FONT_HERSHEY_SIMPLEX, 1,(255,255,51), 1)
                 distance_bed = 0
                 distance_clean = 0
                 #Detection Zone
@@ -294,21 +357,27 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                 for ((objectID, centroid),(objectID,valid)) in zip(objects.items(),valid_checker.items()):
 		    # draw both the ID of the object and the centroid of the
 		    # object on the output frame
-                    #text = "ID {}".format(objectID)
+                    text_id = "ID {}".format(objectID)
+                    backup_label = str(objectID)
                     text = "staff"
                     cv2.putText(img, text, (centroid[0] - 10, centroid[1] - 10),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    cv2.putText(img, text_id, (centroid[0] - 10, centroid[1] - 50),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                     cv2.circle(img, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
                     distance_bed = int(math.sqrt((centroid[0]-zone_x_bed)**2+(centroid[1]-zone_y_bed)**2))
                     distance_clean = int(math.sqrt((centroid[0]-zone_x_clean)**2+(centroid[1]-zone_y_clean)**2))
+                    distance_clean_alchol = int(math.sqrt((centroid[0]-zone_x_alchol)**2+(centroid[1]-zone_y_alchol)**2))
                     enter = ct.display_enter_status(objectID)
                     leave = ct.display_leave_status(objectID)
                     flag = ct.display_hygiene(objectID)
+                    if(distance_clean_alchol <= distance_thres_alchol):
+                        cv2.line(img,(centroid[0], centroid[1]),(zone_x_alchol,zone_y_alchol),(255,0,255),1)
+                        if(hand_wash_status == 1):
+                            personal_status = 1
+                        ct.update_wash(True,objectID) 
+                 
                     if(distance_bed <= distance_thres_bed):
-                        wash_delay+=1
-                        if(wash_delay==15):
-                            #Make some delay for switching wash status
-                            hand_wash_status = 0
-                            wash_delay = 0
+                        personal_status = 0
+                        hand_wash_status = 0
                         cv2.line(img,(centroid[0], centroid[1]),(zone_x_bed,zone_y_bed),(255,0,255),1)
                         #Update Hygiene Status as the staff is originally cleaned
                         ct.update_hygiene(False,objectID)
@@ -355,10 +424,15 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                                         invalid_id.append(objectID)
                     else:
                         if(enter == True):
-                            ct.update_leave(True,objectID)                                 
+                            ct.update_leave(True,objectID)    
+
+
+                            
                     if(distance_clean <= distance_thres_clean):
                         cv2.line(img,(centroid[0], centroid[1]),(zone_x_clean,zone_y_clean),(255,0,255),1)
-                        hand_wash_status = 1
+                        if(hand_wash_status == 1):
+                            personal_status = 1
+                        #hand_wash_status = 1
                         #Update Hygiene Status
                         ct.update_hygiene(True,objectID)
                         #Reset IN/OUT Mechanism
@@ -367,34 +441,61 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                         ct.update_wash(True,objectID)                     
                     #Return hygiene status
                     flag = ct.display_hygiene(objectID)
+                    if(previous_id!=objectID):
+                        hand_wash_status = 0
+                        personal_status = 0
+                    previous_id = objectID 
+
+                    #if(hand_wash_status == 1):
+                    #    cv2.putText(img,"Cleaned", (centroid[0]-10, centroid[1]-30),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    #else:
+                    #    cv2.putText(img,"Uncleaned", (centroid[0]-10, centroid[1]-30),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
                     #CSV TABLE FORMAT: ID, X, Y, DISTANCE_BED, DISTANCE_CLEAN, Hand_wash_status
-                    log_writer.writerow([objectID,centroid[0],centroid[1],int(distance_bed),int(distance_clean),int(hand_wash_status)]) 
-                    if(flag == True):
-                        cv2.putText(img,"Cleaned", (centroid[0]-30, centroid[1]-30),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                    else:
-                        cv2.putText(img,"Uncleaned", (centroid[0]-30, centroid[1]-30),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                    log_writer.writerow([objectID,centroid[0],centroid[1],int(distance_bed),int(distance_clean),int(distance_clean_alchol),int(hand_wash_status),int(personal_status)])
                 #cv2.putText(img, "Counter:", (1400, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
                 #cv2.putText(img, str(counter_msg), (1550, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
-                cv2.putText(img, "Fail:", (1590, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
-                cv2.putText(img, str(fail_msg), (1660, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
+                #cv2.putText(img, "Fail:", (1590, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
+                #cv2.putText(img, str(fail_msg), (1660, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
                 #cv2.putText(img, "Pass:", (1700, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
-                #cv2.putText(img, str(pass_msg), (1790, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)               
-                if show_fps:
-                    img = draw_help_and_fps(img, fps)
-                cv2.imshow(WINDOW_NAME, img)
-                toc = time.time()
-                curr_fps = 1.0 / (toc - tic)
-                # calculate an exponentially decaying average of fps number
-                fps = curr_fps if fps == 0.0 else (fps*0.9 + curr_fps*0.1)
-                tic = toc
-            key = cv2.waitKey(1)
-            if key == 27:  # ESC key: quit program
-                break
-            elif key == ord('H') or key == ord('h'):  # Toggle help/fps
-                show_fps = not show_fps
-            elif key == ord('F') or key == ord('f'):  # Toggle fullscreen
-                full_scrn = not full_scrn
-                set_full_screen(full_scrn)
+                #cv2.putText(img, str(pass_msg), (1790, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)       
+                if(restart_flag == False):        
+                    if show_fps:
+                        img = draw_help_and_fps(img, fps)
+                    cv2.imshow(WINDOW_NAME, img)
+                    toc = time.time()
+                    curr_fps = 1.0 / (toc - tic)
+                    # calculate an exponentially decaying average of fps number
+                    fps = curr_fps if fps == 0.0 else (fps*0.9 + curr_fps*0.1)
+                    tic = toc
+
+            else:
+                print("None Image  --> None Buff = {}".format(none_buff))
+                none_buff+=1
+                if(none_buff == 1000):
+                    print("[SYSTEM] VSTARCAMERA Restart")
+                    cam.stop()  # terminate the sub-thread in camera
+                    #tf_sess.close()
+                    #tf.reset_default_graph()
+                    #tf.contrib.keras.backend.clear_session()
+                    cam.release() 
+                    restart_flag = True
+                    none_buff = 0
+                    #img = None
+                    cv2.destroyAllWindows()       
+
+            if(restart_flag == False):
+                key = cv2.waitKey(1)
+                if key == 27:  # ESC key: quit program
+                    break
+                elif key == ord('H') or key == ord('h'):  # Toggle help/fps
+                    show_fps = not show_fps
+                elif key == ord('F') or key == ord('f'):  # Toggle fullscreen
+                    full_scrn = not full_scrn
+                    set_full_screen(full_scrn)
+
+                
+
+        client.loop_start()
     
 
 def main():
@@ -403,7 +504,7 @@ def main():
     # Ask tensorflow logger not to propagate logs to parent (which causes
     # duplicated logging)
     logging.getLogger('tensorflow').propagate = False
-
+    global args #restart issue
     args = parse_args()
     logger.info('called with args: %s' % args)
 

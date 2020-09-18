@@ -15,6 +15,8 @@ import cv2
 import os
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
 
+interval = 0
+
 
 def add_camera_args(parser):
     """Add parser augument for camera options."""
@@ -54,11 +56,12 @@ def add_camera_args(parser):
 
 
 def open_cam_rtsp(uri, width, height, latency):
+    global interval
     camera_user = 'admin'
     seperator_1 = ':'
     camera_password = '888888'
     seperator_2 = '@'
-    camera_ip = '192.168.68.112'
+    camera_ip = '192.168.0.213'
     rtsp_header = 'rtsp://'
     rtsp_remainder = ':554/udp/av0_1'
     rtsp_url = rtsp_header+camera_user+seperator_1+camera_password+seperator_2+camera_ip+rtsp_remainder
@@ -102,8 +105,6 @@ def grab_img(cam):
     """
     while cam.thread_running:
         _, cam.img_handle = cam.cap.read()
-        #Vertical Flip RTSP Camera
-        cam.img_handle = cv2.flip(cam.img_handle,0)
         if cam.img_handle is None:
             logging.warning('grab_img(): cap.read() returns None...')
             break
@@ -191,8 +192,6 @@ class Camera():
     def read(self):
         if self.args.use_file:
             _, img = self.cap.read()
-            #Vertical flip video
-            img = cv2.flip(img,0)
             if img is None:
                 #logging.warning('grab_img(): cap.read() returns None...')
                 # looping around

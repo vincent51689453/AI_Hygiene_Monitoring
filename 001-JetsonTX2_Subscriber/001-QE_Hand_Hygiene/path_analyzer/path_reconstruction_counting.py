@@ -56,31 +56,11 @@ def background_creation(height,width):
 
 def section_creation():
     global background
-    #Patient Zone (for Room_Hygiene_Demo_12_5fps.mp4)
-    #zone_x_min_patient,zone_y_min_patient,zone_x_max_patient,zone_y_max_patient = 840,500,1300,1000
-    #Cleaning Zone (for Room_Hygiene_Demo_12_5fps.mp4)
-    #zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 300,416,580,680
-    #Entrence Zone (for Room_Hygiene_Demo_12_5fps.mp4)
-    #zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 1200,140,1300,380   
-    #Draw Paitent Zone
-
-    #Bondary boxes for video demo
-    #Patient Zone (RTSP_Room_View_Ready.mp4)
-    #zone_x_min_patient,zone_y_min_patient,zone_x_max_patient,zone_y_max_patient = 600,500,1000,1000
-    #Cleaning Zone (RTSP_Room_View_Ready.mp4)
-    #zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 1600,500,1900,820
-    #Entrence Zone (RTSP_Room_View_Ready.mp4)
-    #zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 450,140,730,480  
-    #Alcohol
-    #zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 300+800,200+300,350+800,270+300
-
-
-
     #Boundary boxes for RTSP (low resolution)
-    zone_x_min_patient,zone_y_min_patient,zone_x_max_patient,zone_y_max_patient = 186,222,327,353
+    zone_x_min_patient,zone_y_min_patient,zone_x_max_patient,zone_y_max_patient = 186,200,327,353
     zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 490,147,627,338
     zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 70,27,171,196
-    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 278,156,300,193
+    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 200,156,220,193
 
     #Draw Paitent Zone
     color_patient = (255,102,255)
@@ -135,7 +115,7 @@ def id_frequency_transform():
             #Row = ID,x,y,distance_patient,distance_clean
             ID_buffer_list.append(row[0])
             total_data+=1           
-    #Assume the datasets must not excede 50 id index
+    #Assume the datasets must not excede 2000 id index
     max_id = 2000
     id_counter = 0
     #An array which store the mapping of index and frequency
@@ -237,6 +217,9 @@ def id_filtering(id_list,threshold,advanced_filter,filter_type):
                 #Detection zone for rtsp (low resolution)
                 zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 30,65,140,200
                 zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 88,65,412,180
+
+                #zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 0,0,640,360
+                #zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 0,0,640,360
                 with open('./path_log.csv') as filter_x_adv:
                     log_filter_x_adv = csv.reader(filter_x_adv)
                     for row_x1_adv in log_filter_x_adv:
@@ -320,9 +303,10 @@ def reconstruction_2d(target_id,id_map):
     previous_y = 0
     #If hand washing detected = 1, else = 0
     hand_wash_flag = 0
-    patient_threshold = 99
-    distance_thres_clean = 120
-    distance_thres_alchol = 85
+    patient_threshold = 110
+    distance_thres_clean = 110
+    #whenever it is pressed, no distance measurment
+    distance_thres_alchol = 80
     num_of_contact = 0
     valid_patient_counter,invalid_patient_counter = 0,0
     valid_exit_counter, invalid_exit_counter = 0,0 
@@ -353,17 +337,7 @@ def reconstruction_2d(target_id,id_map):
         pixel_offset=5
         background[centroid_y:(centroid_y+pixel_offset),centroid_x:(centroid_x+pixel_offset)] = label_pixel_color
         if(counter > 0):
-            if(previous_target_id<target_id):
-                #if(initial_lock == False):
-                #Reset when id is different
-                #    check_hand_record = False
-                #    access_paitient_achor=False
-                #    initial_lock = True
-                check_hand_record = False
-                access_paitient_achor = False
-                    #print("For ID={}, personal_status={}".format(previous_target_id,previous_personal_statement))
-                    #print("Valid_exit="+str(valid_exit_counter))
-                    #print("Invalid_exit="+str(invalid_exit_counter))
+            #if(previous_target_id<target_id):
             #By Pass first iteration
             #Connect all the points
             if(hand_wash_flag==1):
@@ -382,7 +356,6 @@ def reconstruction_2d(target_id,id_map):
                     #End of contact
                     #Find out any hand wash record during contact
                     max_record = max(record_buffer)
-                    print("record=",record_buffer)
                     if(max_record==1):
                         #Indicating whether there is hand washing record ?
                         check_hand_record = True
@@ -399,25 +372,23 @@ def reconstruction_2d(target_id,id_map):
                 if(access_paitient_achor==False):
                     #store all handwashing record until access patient
                     record_buffer=[]
-                    print("Patient Contact Point:",str(distance_patient))
-                    print("set")
                     access_paitient_achor = True
                     if(check_hand_record==True):
                         #Is there any hand washing record in the previous "cleaning zone"?
                         valid_patient_counter+=1
-                        print("Valid Found+1!")
                     else:
                         invalid_patient_counter+=1
-                        print("Invalid Found+1!")
             else:
                 if(access_paitient_achor == True):
                     #Solve suddenly out-of-range threshold
                     if(leave_confirm==False):
-                        leave_confirm = True
-                        leave_confirm_counter = counter
+                        leave_confirm_counter+=1
+                        #As fps is about 16, it allows out of range for 3 seconds => counter = 16 *3 = 48 
+                        if (leave_confirm_counter >= 48):
+                            leave_confirm = True
+                            leave_confirm_counter = 0
                     #Solve suddenly out-of-range threshold
-                    if(counter>leave_confirm_counter)and(leave_confirm==True):
-                        print("reset")
+                    if(leave_confirm==True):
                         access_paitient_achor = False
                         #Once finished contact patient, remove check hand record
                         check_hand_record = False
@@ -495,7 +466,7 @@ def main():
                 valid = 0
                 #Frequency < 80 are defined as interference
                 #Input Parameters: (id_frequency,threshold,advanced filer)
-                valid,valid_id_list=id_filtering(ID_frequency_list,0,True,Advanced_noise_filter.In_Out_Filter_no_dir)
+                valid,valid_id_list=id_filtering(ID_frequency_list,100,False,Advanced_noise_filter.In_Out_Filter_no_dir)
                 print("[INFO] Number Of Valid ID:",valid)
                 #print("[INFO] Filter Output:",valid_id_list)
                 i = 0
@@ -514,10 +485,6 @@ def main():
                             d_1 = 0
                             c_1 = 0
                         print("id=",str(mapped_id))
-                        print("a_1 =",str(a_1))
-                        print("b_1 =",str(b_1))
-                        print("c_1 =",str(c_1))
-                        print("d_1 =",str(d_1)) 
                         SQL_Cursor = SQL_Database.cursor()
                         num_valid_contact,num_invalid_contact = 0,0
                         SQL_Cursor.execute("INSERT INTO STAFF_HYGIENE (staffID,valid,invalid) VALUES (%d,%d,%d)"%(mapped_id,num_valid_contact,num_invalid_contact))
@@ -532,13 +499,6 @@ def main():
             report_text = ("SysTime->"+current_time+" Total ID detected:"+str(mapped_id)+" Total Valid Contact: "+str(valid_contact)+" Total Invalid Contact: "+str(invalid_contact)+"\n")
             #SysLife Counter (check substainability)
             SysLife+=1
-            #MQTT Dashboard Update
-            #mqtt_message =' { "Man-time" :' + str(mapped_id)+ \
-            #    ', "valid_patient_counter" :'+ str(a)+ \
-            #    ', "invalid_patient_counter" :'+str(b)+\
-            #    ', "valid_exit_counter":'+str(c)+\
-            #    ', "invalid_exit_counter":'+str(d) +\
-            #    ', "syslife":'+str(SysLife) + '}'
             total_contact,sucess_rate = 0,0
             total_contact = a+b+c+d
             if(total_contact >0):
@@ -560,9 +520,8 @@ def main():
 
             print("[INFO] MQTT Message:",mqtt_message)
             if(enable_mqtt==True):
+                client.reconnect()
                 client.publish("MDSSCC/AIHH/gui_dashboard", mqtt_message)
-                client.loop_stop()
-                client.disconnect()
             #client.loop()
             #Insert Data to Database
             SQL_Cursor = SQL_Database.cursor()

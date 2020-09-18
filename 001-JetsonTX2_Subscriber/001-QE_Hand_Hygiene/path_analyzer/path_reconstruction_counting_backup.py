@@ -11,14 +11,8 @@ import timeit
 import time
 import paho.mqtt.client as mqtt
 
-
-"""
-Tunning Parameters
-1) patient_threshold = 150 => Distance to define contacting the person
-2) min_samples => Minimum consecutive samples of contact
-3) max_samples => Maxmimum consecutive samples of contact
-"""
-
+#Disable mqtt when testing
+enable_mqtt = True
 previous_personal_statement = 0
 previous_target_id = 0
 #Systm Life Counter
@@ -70,14 +64,23 @@ def section_creation():
     #zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 1200,140,1300,380   
     #Draw Paitent Zone
 
+    #Bondary boxes for video demo
     #Patient Zone (RTSP_Room_View_Ready.mp4)
-    zone_x_min_patient,zone_y_min_patient,zone_x_max_patient,zone_y_max_patient = 600,500,1000,1000
+    #zone_x_min_patient,zone_y_min_patient,zone_x_max_patient,zone_y_max_patient = 600,500,1000,1000
     #Cleaning Zone (RTSP_Room_View_Ready.mp4)
-    zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 1600,500,1900,820
+    #zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 1600,500,1900,820
     #Entrence Zone (RTSP_Room_View_Ready.mp4)
-    zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 450,140,730,480  
+    #zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 450,140,730,480  
     #Alcohol
-    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 300+800,200+300,350+800,270+300
+    #zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 300+800,200+300,350+800,270+300
+
+
+
+    #Boundary boxes for RTSP (low resolution)
+    zone_x_min_patient,zone_y_min_patient,zone_x_max_patient,zone_y_max_patient = 186,222,327,353
+    zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 490,147,627,338
+    zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 70,27,171,196
+    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 278,156,300,193
 
     #Draw Paitent Zone
     color_patient = (255,102,255)
@@ -85,41 +88,41 @@ def section_creation():
     mid_x_patient = int((zone_x_min_patient+zone_x_max_patient)/2.0)
     mid_y_patient = int((zone_y_min_patient+zone_y_max_patient)/2.0)
     cv2.circle(background,(mid_x_patient,mid_y_patient),4,color_patient,-1)
-    cv2.putText(background,"Patient",(mid_x_patient-40,mid_y_patient-20),cv2.FONT_HERSHEY_SIMPLEX,1,color_patient,2)
+    cv2.putText(background,"Patient",(mid_x_patient-40,mid_y_patient-20),cv2.FONT_HERSHEY_SIMPLEX,0.5,color_patient,1)
     #Draw Cleaning Zone
     color_clean = (255,255,51)
     cv2.rectangle(background,(zone_x_min_clean,zone_y_min_clean),(zone_x_max_clean,zone_y_max_clean),color_clean,2)
     mid_x_clean = int((zone_x_min_clean+zone_x_max_clean)/2.0)
     mid_y_clean = int((zone_y_min_clean+zone_y_max_clean)/2.0)
     cv2.circle(background,(mid_x_clean,mid_y_clean),4,color_clean,-1)
-    cv2.putText(background,"Cleaning Zone",(mid_x_clean-120,mid_y_clean-20),cv2.FONT_HERSHEY_SIMPLEX,1,color_clean,2)
+    cv2.putText(background,"Cleaning Zone",(mid_x_clean-120,mid_y_clean-20),cv2.FONT_HERSHEY_SIMPLEX,0.5,color_clean,1)
     #Drawing Entrence 
     color_door = (127,0,255)
     cv2.rectangle(background,(zone_x_min_door,zone_y_min_door),(zone_x_max_door,zone_y_max_door),color_door,2)
     mid_x_door = int((zone_x_min_door+zone_x_max_door)/2.0)
     mid_y_door = int((zone_y_min_door+zone_y_max_door)/2.0)
     cv2.circle(background,(mid_x_door,mid_y_door),4,color_door,-1)
-    cv2.putText(background,"Entrence",(mid_x_door-30,mid_y_door-20),cv2.FONT_HERSHEY_SIMPLEX,0.5,color_door,2) 
+    cv2.putText(background,"Entrance",(mid_x_door-30,mid_y_door-20),cv2.FONT_HERSHEY_SIMPLEX,0.5,color_door,2) 
     #Drawing Alchohol
     cv2.rectangle(background, (zone_x_min_alchol,zone_y_min_alchol),(zone_x_max_alchol,zone_y_max_alchol),(255,255,51),2)            
     zone_x_alchol = int((zone_x_min_alchol+zone_x_max_alchol)/2.0)
     zone_y_alchol = int((zone_y_min_alchol+zone_y_max_alchol)/2.0)
     cv2.circle(background, (zone_x_alchol, zone_y_alchol), 4, (255,255,51), -1)
-    cv2.putText(background, "CLEANING ZONE", (zone_x_alchol-30, zone_y_alchol-20),cv2.FONT_HERSHEY_SIMPLEX, 1,(255,255,51), 1)
+    cv2.putText(background, "CLEANING ZONE", (zone_x_alchol-30, zone_y_alchol-20),cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,51), 1)
 
 
     #Incoming Detection (for Room_Hygiene_Demo_12_5fps.mp4)
     #zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 600,140,1180,420
 
     #Incoming Detection (RTSP_Room_View_Ready.mp4)
-    zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 300,140,620,600
+    zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 30,65,140,200
     color_in = (192,192,192)
     cv2.rectangle(background,(zone_x_min_in,zone_y_min_in),(zone_x_max_in,zone_y_max_in),color_in,2) 
     #Outcoming Detection (for Room_Hygiene_Demo_12_5fps.mp4)
     #zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 900,160,580,600
 
     #Outcoming Detection (RTSP_Room_View_Ready.mp4)
-    zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 600,160,1350,750
+    zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 88,65,412,180
     color_out = (102,178,255)
     cv2.rectangle(background,(zone_x_min_out,zone_y_min_out),(zone_x_max_out,zone_y_max_out),color_out,2)
 
@@ -133,7 +136,7 @@ def id_frequency_transform():
             ID_buffer_list.append(row[0])
             total_data+=1           
     #Assume the datasets must not excede 50 id index
-    max_id = 50
+    max_id = 2000
     id_counter = 0
     #An array which store the mapping of index and frequency
     #ID_buffer_list_sort[2] = 10
@@ -182,9 +185,9 @@ def id_filtering(id_list,threshold,advanced_filter,filter_type):
                 #print("[INFO] Advanced filter Activated  --> ID =",i)
                 global background
                 #Incoming Detection
-                zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 600,140,1180,420
+                zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 30,65,140,250
                 #Outcoming Detection
-                zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 900,160,1350,600
+                zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 88,65,412,265
                 with open('./path_log.csv') as filter_x:
                     log_filter_x = csv.reader(filter_x)
                     for row_x1 in log_filter_x:
@@ -227,9 +230,16 @@ def id_filtering(id_list,threshold,advanced_filter,filter_type):
                 #zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 900,160,1350,600
  
                 #Detection Zone (for RTSP_Room_View_Read.mp4)
-                zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 600,160,1350,750
-                zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 300,140,620,600
+                #zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 600,160,1350,750
+                #zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 300,140,620,600
                 #print("[INFO] In Out Filter Advanced Activated  --> ID =",i)
+
+                #Detection zone for rtsp (low resolution)
+                zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 30,65,140,200
+                zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 88,65,412,180
+
+                #zone_x_min_in,zone_y_min_in,zone_x_max_in,zone_y_max_in = 0,0,640,360
+                #zone_x_min_out,zone_y_min_out,zone_x_max_out,zone_y_max_out = 0,0,640,360
                 with open('./path_log.csv') as filter_x_adv:
                     log_filter_x_adv = csv.reader(filter_x_adv)
                     for row_x1_adv in log_filter_x_adv:
@@ -312,10 +322,11 @@ def reconstruction_2d(target_id,id_map):
     previous_x = 0
     previous_y = 0
     #If hand washing detected = 1, else = 0
-    hand_wash_flag = 0 
-    patient_threshold = 240
-    distance_thres_clean = 160
-    distance_thres_alchol = 100
+    hand_wash_flag = 0
+    patient_threshold = 99
+    distance_thres_clean = 120
+    #whenever it is pressed, no distance measurment
+    distance_thres_alchol = 120
     num_of_contact = 0
     valid_patient_counter,invalid_patient_counter = 0,0
     valid_exit_counter, invalid_exit_counter = 0,0 
@@ -327,6 +338,8 @@ def reconstruction_2d(target_id,id_map):
     initial_lock = False
     personal_status = False
     counter = 0
+    leave_confirm = False
+    leave_confirm_counter = 0
     #Process all data of one single ID
     while(counter<len(Position_list)):
         currentPosition=Position_list[counter]
@@ -344,15 +357,7 @@ def reconstruction_2d(target_id,id_map):
         pixel_offset=5
         background[centroid_y:(centroid_y+pixel_offset),centroid_x:(centroid_x+pixel_offset)] = label_pixel_color
         if(counter > 0):
-            if(previous_target_id<target_id):
-                if(initial_lock == False):
-                #Reset when id is different
-                    check_hand_record = False
-                    access_paitient_achor=False
-                    initial_lock = True
-                    #print("For ID={}, personal_status={}".format(previous_target_id,previous_personal_statement))
-                    #print("Valid_exit="+str(valid_exit_counter))
-                    #print("Invalid_exit="+str(invalid_exit_counter))
+            #if(previous_target_id<target_id):
             #By Pass first iteration
             #Connect all the points
             if(hand_wash_flag==1):
@@ -379,13 +384,17 @@ def reconstruction_2d(target_id,id_map):
                     else:
                         check_hand_record = False
                         print("Record-Check = False")
-                    record_buffer=[]
                     access_flag = False
-            if(distance_patient<=patient_threshold):
+            if(distance_patient<patient_threshold):
                 #If the staff touches the patient, display in White Color
+                #print("distance = ",distance_patient)
+                #print(access_paitient_achor)
                 cv2.arrowedLine(background,(previous_x,previous_y),(centroid_x,centroid_y),(255,255,255),1)
                 if(access_paitient_achor==False):
+                    #store all handwashing record until access patient
+                    record_buffer=[]
                     print("Patient Contact Point:",str(distance_patient))
+                    print("set")
                     access_paitient_achor = True
                     if(check_hand_record==True):
                         #Is there any hand washing record in the previous "cleaning zone"?
@@ -393,11 +402,26 @@ def reconstruction_2d(target_id,id_map):
                         print("Valid Found+1!")
                     else:
                         invalid_patient_counter+=1
+                        print("Invalid Found+1!")
             else:
                 if(access_paitient_achor == True):
-                    access_paitient_achor = False
-                    #Once contact patient, remove check hand record
-                    check_hand_record = False
+                    #Solve suddenly out-of-range threshold
+                    if(leave_confirm==False):
+                        leave_confirm_counter+=1
+                        #As fps is about 16, it allows out of range for 1 seconds => counter = 16 *1 = 16 
+                        if (leave_confirm_counter >= 16):
+                            leave_confirm = True
+                            leave_confirm_counter = 0
+                    #Solve suddenly out-of-range threshold
+                    if(leave_confirm==True):
+                        print("reset")
+                        access_paitient_achor = False
+                        #Once finished contact patient, remove check hand record
+                        check_hand_record = False
+                        #Reset 
+                        leave_confirm = False
+                        leave_confirm_counter = 0
+
 
                 if((hand_wash_flag==0)and(distance_patient>patient_threshold)):
                     #Others
@@ -420,17 +444,15 @@ def reconstruction_2d(target_id,id_map):
     cv2.imwrite(file_path,background)
     print("[INFO] 2D Path Reconstruction of ID %d FINISHED"%(target_id))
     print("[INFO] Saved at ",file_path)
-    #print("Valid_patient="+str(valid_patient_counter))
-    #print("Invalid_patient="+str(invalid_patient_counter))
+    print("Valid_patient="+str(valid_patient_counter))
+    print("Invalid_patient="+str(invalid_patient_counter))
     #Check leaving room status
     if(personal_status == 1):
         valid_exit_counter=1
         invalid_exit_counter = 0
-        print("ADDDDDDDDDDDDDDDDDDDDDDDDDDD")
     else:
         invalid_exit_counter=1
         valid_exit_counter = 0
-        print("XDDDDDDDDDDDDDDDDDDDDDDDDDDD")
     print("valid_exit_counter="+str(valid_exit_counter))
     return valid_patient_counter,invalid_patient_counter,valid_exit_counter,invalid_exit_counter
 
@@ -448,9 +470,10 @@ def main():
             #A list to store (x,y,distance_bed,distance_clean,hand_wash)
             Position_list=[]
             #MQTT Publisher for Dashboard
-            client = mqtt.Client()
-            client.connect("localhost",1883,60)
-            client.loop_start()
+            if(enable_mqtt==True):
+                client = mqtt.Client()
+                client.connect("localhost",1883,60)
+                client.loop_start()
             #Calculate Starting time of the alogrithm
             start_time = timeit.default_timer()
             global background,Monitor_Report,SQL_Database
@@ -469,14 +492,14 @@ def main():
                 valid = 0
                 #Frequency < 80 are defined as interference
                 #Input Parameters: (id_frequency,threshold,advanced filer)
-                valid,valid_id_list=id_filtering(ID_frequency_list,0,True,Advanced_noise_filter.In_Out_Filter_no_dir)
+                valid,valid_id_list=id_filtering(ID_frequency_list,0,False,Advanced_noise_filter.In_Out_Filter_no_dir)
                 print("[INFO] Number Of Valid ID:",valid)
-                print("[INFO] Filter Output:",valid_id_list)
+                #print("[INFO] Filter Output:",valid_id_list)
                 i = 0
                 while(i<len(valid_id_list)):
                     if(valid_id_list[i]!=0):
                         #Create a black background (h,w)
-                        background = background_creation(1080,1920)
+                        background = background_creation(360,640)
                         #Create different regions in background image
                         section_creation()
                         read_localization_data(i)
@@ -488,10 +511,10 @@ def main():
                             d_1 = 0
                             c_1 = 0
                         print("id=",str(mapped_id))
-                        print("a_1 =",str(a_1))
-                        print("b_1 =",str(b_1))
-                        print("c_1 =",str(c_1))
-                        print("d_1 =",str(d_1)) 
+                        #print("a_1 =",str(a_1))
+                        #print("b_1 =",str(b_1))
+                        #print("c_1 =",str(c_1))
+                        #print("d_1 =",str(d_1)) 
                         SQL_Cursor = SQL_Database.cursor()
                         num_valid_contact,num_invalid_contact = 0,0
                         SQL_Cursor.execute("INSERT INTO STAFF_HYGIENE (staffID,valid,invalid) VALUES (%d,%d,%d)"%(mapped_id,num_valid_contact,num_invalid_contact))
@@ -533,9 +556,10 @@ def main():
 
 
             print("[INFO] MQTT Message:",mqtt_message)
-            client.publish("MDSSCC/AIHH/gui_dashboard", mqtt_message)
-            client.loop_stop()
-            client.disconnect()
+            if(enable_mqtt==True):
+                client.publish("MDSSCC/AIHH/gui_dashboard", mqtt_message)
+                client.loop_stop()
+                client.disconnect()
             #client.loop()
             #Insert Data to Database
             SQL_Cursor = SQL_Database.cursor()

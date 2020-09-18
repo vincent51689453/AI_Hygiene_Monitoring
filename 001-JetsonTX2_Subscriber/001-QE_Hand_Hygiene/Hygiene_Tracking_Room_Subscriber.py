@@ -203,7 +203,7 @@ class BBoxVisualization():
         for bb, cf, cl in zip(box, conf, cls):
             cl = int(cl)
             print("Confidence=",cf)
-            if((cl == 1)and(cf>=0.6)): #Vincent:Only process "person" (label id of persion = 1) + confidence control
+            if((cl == 1)and(cf>=0.55)): #Vincent:Only process "person" (label id of persion = 1) + confidence control
                 y_min, x_min, y_max, x_max = bb[0], bb[1], bb[2], bb[3]
                 color = self.colors[cl]
                 temp.append(x_min)
@@ -217,7 +217,7 @@ class BBoxVisualization():
                 id_x = int((x_min+x_max)/2) 
                 id_y = int((y_min+y_max)/2) +30
                 debug = "W="+str(hand_wash_status)
-                cv2.putText(img, debug ,(id_x, id_y), cv2.FONT_HERSHEY_PLAIN, 1, (255,0,0), 2, cv2.LINE_AA)
+                cv2.putText(img, debug ,(id_x, id_y+30), cv2.FONT_HERSHEY_PLAIN, 1, (0,255,0), 2, cv2.LINE_AA)
                 rects.append(temp)
                 temp=[]
                 cv2.rectangle(img, (x_min, y_min), (x_max, y_max), color, 2)
@@ -257,40 +257,20 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
     global rects,ct,temp
     zone_x_bed = 0
     zone_y_bed = 0
-    #Boundary boxes for Room_Hygiene_Demo_12_5fps.mp4
-    #zone_x_min_bed,zone_y_min_bed,zone_x_max_bed,zone_y_max_bed = 840,500,1300,1000
+
     zone_x_clean = 0
     zone_y_clean = 0
-    #Boundary boxes for Room_Hygiene_Demo_12_5fps.mp4
-    #zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 300,416,580,680
-    #Boundary boxes for Room_Hygiene_Demo_12_5fps.mp4
-    #zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 1200,140,1300,380
-
-    #Bondary boxes for video demo
-    #Boundary boxes for RTSP_Room_View_Ready.mp4
-    #zone_x_min_bed,zone_y_min_bed,zone_x_max_bed,zone_y_max_bed = 600,500,1000,1000
-    #Boundary boxes for RTSP_Room_View_Ready.mp4
-    #zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 1600,500,1900,820
-    #Boundary boxes for RTSP_Room_View_Ready.mp4
-    #zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 450,140,730,480
-    #Boundary boxes for RTSP_Room_View_Ready.mp4
-    #zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 300+800,200+300,350+800,270+300
-
 
     #Boundary boxes for RTSP (low resolution)
-    zone_x_min_bed,zone_y_min_bed,zone_x_max_bed,zone_y_max_bed = 186,222,327,353
+    zone_x_min_bed,zone_y_min_bed,zone_x_max_bed,zone_y_max_bed = 195,150,350,353
     zone_x_min_clean,zone_y_min_clean,zone_x_max_clean,zone_y_max_clean = 490,147,627,338
     zone_x_min_door,zone_y_min_door,zone_x_max_door,zone_y_max_door = 70,27,171,196
-    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 278,156,300,193
+    zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 200,156,220,193
 
-    #Room_Hygiene_Demo_12_5fps.mp4
-    #distance_thres_bed = 150
-    #distance_thres_clean = 80
 
-    #RTSP_Room_View_Read.mp4
-    distance_thres_bed = 99
-    distance_thres_clean = 120
-    distance_thres_alchol = 85
+    distance_thres_bed = 110
+    distance_thres_clean = 80
+    distance_thres_alchol = 110
 
     counter_msg = 0
     fail_msg = 0
@@ -377,17 +357,18 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                     leave = ct.display_leave_status(objectID)
                     flag = ct.display_hygiene(objectID)
                     if(distance_clean_alchol <= distance_thres_alchol):
-                        cv2.line(img,(centroid[0], centroid[1]),(zone_x_alchol,zone_y_alchol),(255,0,255),1)
-                        if(hand_wash_status == 1):
-                            personal_status[objectID] = 1
-                        ct.update_wash(True,objectID) 
+                        cv2.line(img,(centroid[0], centroid[1]),(zone_x_alchol,zone_y_alchol),(0,0,255),1)
+                    #    if(hand_wash_status == 1):
+                    #        personal_status[objectID] = 1
+                    #    ct.update_wash(True,objectID) 
                  
                     if(distance_bed <= distance_thres_bed):
                         personal_status[objectID] = 0
                         hand_wash_status = 0
-                        cv2.line(img,(centroid[0], centroid[1]),(zone_x_bed,zone_y_bed),(255,0,255),1)
+                        cv2.line(img,(centroid[0], centroid[1]),(zone_x_bed,zone_y_bed),(0,255,0),1)
                         #Update Hygiene Status as the staff is originally cleaned
                         ct.update_hygiene(False,objectID)
+                        """
                         #Never enter
                         if(enter == False):
                             ct.update_enter(True,objectID)
@@ -434,9 +415,10 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                             ct.update_leave(True,objectID)    
 
 
-                            
-                    if(distance_clean <= distance_thres_clean):
-                        cv2.line(img,(centroid[0], centroid[1]),(zone_x_clean,zone_y_clean),(255,0,255),1)
+                    """         
+                    if((distance_clean <= distance_thres_clean)or(distance_clean_alchol <= distance_thres_alchol)):
+                        if(distance_clean <= distance_thres_clean):
+                            cv2.line(img,(centroid[0], centroid[1]),(zone_x_clean,zone_y_clean),(51,255,255),1)
                         if(hand_wash_status == 1):
                             personal_status[objectID] = 1
                         #hand_wash_status = 1
@@ -453,18 +435,8 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                         #personal_status = 0
                     previous_id = objectID 
 
-                    #if(hand_wash_status == 1):
-                    #    cv2.putText(img,"Cleaned", (centroid[0]-10, centroid[1]-30),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                    #else:
-                    #    cv2.putText(img,"Uncleaned", (centroid[0]-10, centroid[1]-30),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-                    #CSV TABLE FORMAT: ID, X, Y, DISTANCE_BED, DISTANCE_CLEAN, Hand_wash_status
                     log_writer.writerow([objectID,centroid[0],centroid[1],int(distance_bed),int(distance_clean),int(distance_clean_alchol),int(hand_wash_status),int(personal_status[objectID])])
-                #cv2.putText(img, "Counter:", (1400, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
-                #cv2.putText(img, str(counter_msg), (1550, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
-                #cv2.putText(img, "Fail:", (1590, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
-                #cv2.putText(img, str(fail_msg), (1660, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
-                #cv2.putText(img, "Pass:", (1700, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)
-                #cv2.putText(img, str(pass_msg), (1790, 90), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2, cv2.LINE_AA)       
+      
                 if(restart_flag == False):        
                     if show_fps:
                         img = draw_help_and_fps(img, fps)
@@ -504,7 +476,8 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
                 
 
         #client.loop_start()
-        client.loop_forever()
+        #client.loop_forever()
+        client.reconnect()
     
 
 def main():
