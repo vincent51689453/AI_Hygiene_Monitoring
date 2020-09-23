@@ -268,7 +268,7 @@ def loop_and_detect(cam, tf_sess, conf_th, vis, od_type):
     zone_x_min_alchol,zone_y_min_alchol,zone_x_max_alchol,zone_y_max_alchol = 200,156,220,193
 
 
-    distance_thres_bed = 110
+    distance_thres_bed = 130
     distance_thres_clean = 80
     distance_thres_alchol = 110
 

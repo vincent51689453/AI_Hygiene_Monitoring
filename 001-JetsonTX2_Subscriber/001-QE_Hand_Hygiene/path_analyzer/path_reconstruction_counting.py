@@ -348,21 +348,17 @@ def reconstruction_2d(target_id,id_map):
                 if(access_flag==False):
                     #Starting recording data when staff is next to cleaning zone
                     access_flag=True
-                    print("access-point:",distance_clean)
+                    print("access-point: id={} x={} y = {} hand-wash={}".format(counter,centroid_x,centroid_y,hand_wash_flag))
+                    #print("distnce_clean={} distance_alchol={}".format(distance_clean,distance_alchol))
                     #Start recording hand_wash_status
+                print(record_buffer)
                 record_buffer.append(hand_wash_flag)
             else:
                 if(access_flag==True):
                     #End of contact
+                    #print("leave-point: id={} x={} y = {}".format(counter,centroid_x,centroid_y))
+                    #print("distnce_clean={} distance_alchol={}".format(distance_clean,distance_alchol))
                     #Find out any hand wash record during contact
-                    max_record = max(record_buffer)
-                    if(max_record==1):
-                        #Indicating whether there is hand washing record ?
-                        check_hand_record = True
-                        print("Record-Check = True")
-                    else:
-                        check_hand_record = False
-                        print("Record-Check = False")
                     access_flag = False
             if(distance_patient<patient_threshold):
                 #If the staff touches the patient, display in White Color
@@ -371,6 +367,14 @@ def reconstruction_2d(target_id,id_map):
                 cv2.arrowedLine(background,(previous_x,previous_y),(centroid_x,centroid_y),(255,255,255),1)
                 if(access_paitient_achor==False):
                     #store all handwashing record until access patient
+                    max_record = max(record_buffer)
+                    if(max_record==1):
+                        #Indicating whether there is hand washing record ?
+                        check_hand_record = True
+                        print("Record-Check = True")
+                    else:
+                        check_hand_record = False
+                        print("Record-Check = False")
                     record_buffer=[]
                     access_paitient_achor = True
                     if(check_hand_record==True):
